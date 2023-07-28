@@ -1622,7 +1622,10 @@ class LLG(Magnetization):
         
 
         #Nickel specific properties
-        gamma_e = 1.761e11 #rad s^-1 T^-1
+        g_Ni = 2.21
+        g_e = 2.002319
+        
+        gamma_e = 1.761e11*(g_Ni/g_e) #rad s^-1 T^-1
         alpha = 0.08
         me_coupling = - 7.85e6 #J/m³
 
