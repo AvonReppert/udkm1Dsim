@@ -1,6 +1,9 @@
 # Compiled python modules.
 *.pyc
 
+# exported strain and heat maps
+*.npz
+
 /MANIFEST
 /dist
 /build
