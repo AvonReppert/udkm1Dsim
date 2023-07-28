@@ -44,7 +44,7 @@ pump_delay = [0]*u.ps
 multi_abs = True
 init_temp = 300
 heat_diff = True
-delays = np.r_[-100:2000:0.05]*u.ps
+delays = np.r_[-5000:1000:0.05]*u.ps
 
 # Simulation Model
 static_exp = True
