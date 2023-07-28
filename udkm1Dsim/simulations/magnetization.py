@@ -692,7 +692,7 @@ class LLB(Magnetization):
 
     @staticmethod
     def odefunc(t, m,
-                delays, N, H_ext, temp_map, mean_mag_map, curie_temps, eff_spins, lambdas,
+                delays, N, H_ext, temp_map, strain_map, mean_mag_map, curie_temps, eff_spins, lambdas,
                 mf_exch_couplings, mag_moments, aniso_exponents, anisotropies, mag_saturations,
                 exch_stiffnesses, thicknesses, pbar, state):
         """odefunc
@@ -754,6 +754,7 @@ class LLB(Magnetization):
         # nearest delay index for current time t
         idt = finderb(t, delays)[0]
         temps = temp_map[idt, :].flatten()
+        strains = strain_map[idt, :].flatten()
         # binary masks for layers being under or over its Curie temperature
         under_tc = (temps < curie_temps)
         over_tc = ~under_tc
@@ -774,6 +775,16 @@ class LLB(Magnetization):
         H_th = LLB.calc_thermal_field(m, m_squared, temps, mf_magnetizations, eff_spins,
                                       curie_temps, mf_exch_couplings, mag_moments, under_tc,
                                       over_tc)
+
+        me_coupling = - 7.85e6 #J/m³
+
+    
+        
+        H_me = LLG.calc_magneto_elastic_field(m, mf_magnetizations, strains, me_coupling, mag_saturations)
+
+        H_s = LLG.calc_shape_anisotropy(m, mf_magnetizations)  
+        
+        
 
         # calculate the effective field
         H_eff = H_ext + H_A + H_ex + H_th
@@ -805,7 +816,103 @@ class LLB(Magnetization):
         dmdt = gamma_e * (m_rot + trans_damping - long_damping)
 
         return np.reshape(dmdt, N*3, order='F')
+    
+    @staticmethod
+    def calc_shape_anisotropy(mag_map, mf_magnetizations):
+        r"""calc_uniaxial_anisotropy_field
 
+        Calculate the uniaxial anisotropy component of the effective field.
+
+        .. math::
+
+            \mathbf{H}_\mathrm{A} = -
+            \frac{2}{M_s}
+            \left(
+                K_x\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}0\\m_y\\m_z\end{bmatrix}
+                + K_y\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}m_x\\0\\m_z\end{bmatrix}
+                + K_z\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}m_x\\m_y\\0\end{bmatrix}
+            \right)
+
+        with :math:`K = (K_x, K_y, K_z)` as the anisotropy and :math:`\kappa` as
+        the uniaxial anisotropy exponent.
+
+        Args:
+            mag_map (ndarray[float]): spatio-temporal magnetization map
+                - possibly for a single delay.
+            mf_magnetizations (ndarray[float]): mean-field magnetization of
+                layers.
+            strain_map (ndarray[float]): spatio-temporal strain map
+                - possibly for a single delay.
+            coubling (ndarray[float]): magneto elastic coupling of layers.
+            mag_saturations (ndarray[float]): saturation magnetization of
+                layers.
+
+        Returns:
+            H_A (ndarray[float]): uniaxial anisotropy field.
+
+        """
+        H_s = np.zeros_like(mag_map)
+
+        factor = -1/2 ### Should be repölaced by -M_s
+        unit_vector = np.array([0, 0, 1])[np.newaxis, :]
+        
+
+        H_s += factor * mag_map * unit_vector
+                          
+        return H_s
+    
+    @staticmethod
+    def calc_magneto_elastic_field(mag_map, mf_magnetizations, strain_map, coupling,
+                                       mag_saturations):
+        r"""calc_uniaxial_anisotropy_field
+
+        Calculate the uniaxial anisotropy component of the effective field.
+
+        .. math::
+
+            \mathbf{H}_\mathrm{A} = -
+            \frac{2}{M_s}
+            \left(
+                K_x\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}0\\m_y\\m_z\end{bmatrix}
+                + K_y\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}m_x\\0\\m_z\end{bmatrix}
+                + K_z\,m_\mathrm{eq}(T)^{\kappa-2}
+                    \begin{bmatrix}m_x\\m_y\\0\end{bmatrix}
+            \right)
+
+        with :math:`K = (K_x, K_y, K_z)` as the anisotropy and :math:`\kappa` as
+        the uniaxial anisotropy exponent.
+
+        Args:
+            mag_map (ndarray[float]): spatio-temporal magnetization map
+                - possibly for a single delay.
+            mf_magnetizations (ndarray[float]): mean-field magnetization of
+                layers.
+            strain_map (ndarray[float]): spatio-temporal strain map
+                - possibly for a single delay.
+            coubling (ndarray[float]): magneto elastic coupling of layers.
+            mag_saturations (ndarray[float]): saturation magnetization of
+                layers.
+
+        Returns:
+            H_A (ndarray[float]): uniaxial anisotropy field.
+
+        """
+        H_me = np.zeros_like(mag_map)
+
+        factor = 2/mag_saturations[2]
+
+
+
+        H_me[:, 2] = np.sum(factor * coupling * mag_map * strain_map[:, np.newaxis], axis=1)
+
+        
+        return(H_me)
+    
     @staticmethod
     def calc_uniaxial_anisotropy_field(mag_map, mf_magnetizations, aniso_exponents, anisotropies,
                                        mag_saturations):
