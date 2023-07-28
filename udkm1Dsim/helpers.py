@@ -91,6 +91,39 @@ def m_power_x(m, x):
                 m[i, j, :, :] = np.linalg.matrix_power(m[i, j, :, :], x)
     return m
 
+def convert_polar_to_cartesian(polar):
+    r"""convert_polar_to_cartesian
+
+    Convert a vector or field from polar coordinates
+    :math:`(r, \phi, \gamma)` to cartesian coordinates :math:`(x, y, z)`:
+
+    .. math::
+
+        F_x & = r \sin(\phi)\cos(\gamma) \\
+        F_y & = r \sin(\phi)\sin(\gamma) \\
+        F_z & = r \cos(\phi)
+
+    where :math:`r`, :math:`\phi`, :math:`\gamma` are the radius
+    (amplitude), azimuthal, and polar angles of vector field
+    :math:`\mathbf{F}`, respectively.
+
+    Args:
+        polar (ndarray[float]): vector of field to convert.
+
+    Returns:
+        cartesian (ndarray[float]): converted vector or field.
+
+    """
+    cartesian = np.zeros_like(polar)
+
+    amplitudes = polar[..., 0]
+    phis = polar[..., 1]
+    gammas = polar[..., 2]
+    cartesian[..., 0] = amplitudes*np.sin(phis)*np.cos(gammas)
+    cartesian[..., 1] = amplitudes*np.sin(phis)*np.sin(gammas)
+    cartesian[..., 2] = amplitudes*np.cos(phis)
+
+    return cartesian
 
 def m_times_n(m, n):
     """m_times_n
