@@ -44,7 +44,7 @@ pump_delay = [0]*u.ps
 multi_abs = True
 init_temp = 300
 heat_diff = True
-delays = np.r_[-5000:1000:0.05]*u.ps
+delays = np.r_[-100:1000:0.05]*u.ps
 
 # Simulation Model
 static_exp = True
@@ -214,7 +214,7 @@ plt.tight_layout()
 plt.show()
 
 
-# %% LLB Calculations
+# %% LLG Calculations
 
 llg = ud.LLG(S, True)
 
@@ -226,9 +226,9 @@ print(llg)
 
 angles = np.linspace(np.pi/16, np.pi/2, 1)
 
-m_0_l = 0.979255661045889
-m_0_0 = 0.846729079775114
-m_0_1 = 0.0017708926455357985
+m_0_l = 0.9790293880752639
+m_0_0 = 1.1927953258329187
+m_0_1 = 0
 
 
 for angle in angles:
