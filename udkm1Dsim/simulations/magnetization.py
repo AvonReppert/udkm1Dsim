@@ -413,66 +413,55 @@ class LLB(Magnetization):
         return class_str
 
     def calc_magnetization_map(self, delays, temp_map, H_ext=np.array([0, 0, 0]), init_mag=[]):
-        r"""calc_magnetization_map
+        r"""Calculate the magnetization map using the mean-field quantum Landau-Lifshitz-Bloch equation (LLB).
 
-        Calculates the magnetization map using the mean-field quantum
-        Landau-Lifshitz-Bloch equation (LLB) for a given delay range and
-        according temperature map:
+            This function calculates the spatio-temporal magnetization map using the LLB equation for a given delay range
+            and temperature map.
 
-        .. math::
+            The LLB equation is given by:
 
-            \frac{d\mathbf{m}}{dt}=\gamma_e \left(\mathbf{m} \times
-              \mathbf{H}_\mathrm{eff} + \frac{\alpha_{\perp}}{m^2}\mathbf{m}
-              \times (\mathbf{m} \times \mathbf{H}_\mathrm{eff}) -
-              \frac{\alpha_{\parallel}}{m^2}(\mathbf{m} \cdot
-              \mathbf{H}_\mathrm{eff}) \cdot \mathbf{m}\right)
+            .. math::
 
-        The three terms describe
+                \frac{d\mathbf{m}}{dt} = \gamma_e \left( \mathbf{m} \times \mathbf{H}_\mathrm{eff}
+                + \frac{\alpha_{\perp}}{m^2}\mathbf{m} \times (\mathbf{m} \times \mathbf{H}_\mathrm{eff})
+                - \frac{\alpha_{\parallel}}{m^2}(\mathbf{m} \cdot \mathbf{H}_\mathrm{eff}) \cdot \mathbf{m} \right)
 
-        #. **precession** at Larmor frequency,
-        #. **transversal damping** (conserving the macrospin length), and
-        #. **longitudinal damping** (changing macrospin length due to incoherent
-           atomistic spin excitations within the layer the macrospin is
-           defined on).
+            The three terms describe:
 
-        :math:`\alpha_{\parallel}` and :math:`\alpha_{\perp}` are the
-        :meth:`longitudinal damping<calc_longitudinal_damping>` and
-        :meth:`transverse damping<calc_transverse_damping>` parameters,
-        respectively.
-        :math:`\gamma_e = -1.761\times10^{11}\,\mathrm{rad\,s^{-1}\,T^{-1}}` is
-        the gyromagnetic ratio of an electron.
+            1. **Precession** at Larmor frequency.
+            2. **Transversal damping**, conserving the macrospin length.
+            3. **Longitudinal damping**, changing macrospin length due to incoherent atomistic spin excitations within the layer
+               the macrospin is defined on.
 
-        The effective magnetic field is the sum of all relevant magnetic
-        interactions:
+            :math:`\alpha_{\parallel}` and :math:`\alpha_{\perp}` are the longitudinal damping and transverse damping
+            parameters, respectively.
+            :math:`\gamma_e = -1.761\times10^{11}\,\mathrm{rad\,s^{-1}\,T^{-1}}` is the gyromagnetic ratio of an electron.
 
-        .. math::
+            The effective magnetic field is the sum of all relevant magnetic interactions:
 
-            \mathbf{H}_\mathrm{eff} = \mathbf{H}_\mathrm{ext}
-              + \mathbf{H}_\mathrm{A}
-              + \mathbf{H}_\mathrm{ex}
-              + \mathbf{H}_\mathrm{th}
+            .. math::
 
-        where
+                \mathbf{H}_\mathrm{eff} = \mathbf{H}_\mathrm{ext}
+                  + \mathbf{H}_\mathrm{A}
+                  + \mathbf{H}_\mathrm{ex}
+                  + \mathbf{H}_\mathrm{th}
 
-        * :math:`\mathbf{H}_\mathrm{ext}` is the external magnetic field
-        * :math:`\mathbf{H}_\mathrm{A}` is the :meth:`uniaxial anisotropy field
-          <calc_uniaxial_anisotropy_field>`
-        * :math:`\mathbf{H}_\mathrm{ex}` is the :meth:`exchange field
-          <calc_exchange_field>`
-        * :math:`\mathbf{H}_\mathrm{th}` is the :meth:`thermal field
-          <calc_thermal_field>`
+            where:
 
-        Args:
-            delays (ndarray[Quantity]): delays range of simulation [s].
-            temp_map (ndarray[float]): spatio-temporal temperature map.
-            H_ext (ndarray[float], optional): external magnetic field
-                (H_x, H_y, H_z) [T].
+            * :math:`\mathbf{H}_\mathrm{ext}` is the external magnetic field (H_x, H_y, H_z) [T].
+            * :math:`\mathbf{H}_\mathrm{A}` is the uniaxial anisotropy field, calculated by the function `calc_uniaxial_anisotropy_field`.
+            * :math:`\mathbf{H}_\mathrm{ex}` is the exchange field, calculated by the function `calc_exchange_field`.
+            * :math:`\mathbf{H}_\mathrm{th}` is the thermal field, calculated by the function `calc_thermal_field`.
 
-        Returns:
-            magnetization_map (ndarray[float]): spatio-temporal absolute
-            magnetization profile.
+            Args:
+                delays (ndarray[Quantity]): Delays range of simulation [s].
+                temp_map (ndarray[float]): Spatio-temporal temperature map.
+                H_ext (ndarray[float], optional): External magnetic field (H_x, H_y, H_z) [T].
 
-        """
+            Returns:
+                ndarray[float]: Spatio-temporal absolute magnetization profile.
+
+            """
         t1 = time()
         try:
             delays = delays.to('s').magnitude
@@ -1350,66 +1339,64 @@ class LLG(Magnetization):
 
     def __str__(self):
         """String representation of this class"""
-        class_str = 'Landau-Lifshitz-Bloch Magnetization Dynamics simulation ' \
+        class_str = 'Landau-Lifshitz-Gilber Magnetization Dynamics simulation ' \
                     'properties:\n\n'
         class_str += super().__str__()
         return class_str
 
     def calc_magnetization_map(self, delays, temp_map, strain_map, H_ext=np.array([0, 0, 0]), init_mag=[]):
-        r"""calc_magnetization_map
+        r"""Calculate the magnetization map using the Landau-Lifshitz-Gilbert (LLG) equation.
 
-        Calculates the magnetization map using the Landau-Lifshitz-Gilbert equation (LLG) for a given delay range and
-        according temperature map:
+        The function calculates the magnetization map based on the LLG equation, taking into account
+        the provided temperature map and optional external magnetic field.
 
-        .. math::
-
-            \frac{d\mathbf{m}}{dt}=\gamma \left(\mathbf{m} \times
-              \mathbf{H}_\mathrm{eff} + \gamma \frac{\alpha}{m^2}\mathbf{m}
-              \times (\mathbf{m} \times \mathbf{H}_\mathrm{eff})
-
-        The two terms describe
-
-        #. **precession** at Larmor frequency,
-        #. **damping** (conserving the macrospin length), and
-
-        :math:`\alpha_{\parallel}` and :math:`\alpha_{\perp}` are the
-        :meth:`longitudinal damping<calc_longitudinal_damping>` and
-        :meth:`transverse damping<calc_transverse_damping>` parameters,
-        respectively.
-        :math:`\gamma_e = -1.761\times10^{11}\,\mathrm{rad\,s^{-1}\,T^{-1}}` is
-        the gyromagnetic ratio of an electron.
-
-        The effective magnetic field is the sum of all relevant magnetic
-        interactions:
+        The LLG equation is given by:
 
         .. math::
 
-            \mathbf{H}_\mathrm{eff} = \mathbf{H}_\mathrm{ext}
-              + \mathbf{H}_\mathrm{A}
-              + \mathbf{H}_\mathrm{ex}
-              + \mathbf{H}_\mathrm{th}
+            \frac{d\mathbf{m}}{dt} = \gamma \left( \mathbf{m} \times \mathbf{H}_\mathrm{eff}
+            + \gamma \frac{\alpha}{m^2} \mathbf{m} \times (\mathbf{m} \times \mathbf{H}_\mathrm{eff}) \right)
 
-        where
+        The two terms in the equation describe:
 
-        * :math:`\mathbf{H}_\mathrm{ext}` is the external magnetic field
-        * :math:`\mathbf{H}_\mathrm{A}` is the :meth:`uniaxial anisotropy field
-          <calc_uniaxial_anisotropy_field>`
-        * :math:`\mathbf{H}_\mathrm{ex}` is the :meth:`exchange field
-          <calc_exchange_field>`
-        * :math:`\mathbf{H}_\mathrm{th}` is the :meth:`thermal field
-          <calc_thermal_field>`
+        1. **Precession** at the Larmor frequency of the material.
+        2. **Damping** (conserving the macrospin length).
+
+        The LLG equation takes into account the layer-specific Gilbert damping parameter :math:`\alpha`,
+        and the gyromagnetic ratio :math:`\gamma`, which is calculated as:
+
+        .. math::
+
+            \gamma = -1.761 \times 10^{11} \, \mathrm{rad \, s^{-1} \, T^{-1}} * \frac{g_l}{g_e}
+
+        where :math:`\mathbf{g}_\mathrm{l}` is the g-factor for the layer (e.g., 2.21 for Ni, 2.18 for Co,
+        2.08 for Fe according to Stöhr and Siegmann), and :math:`\mathbf{g}_\mathrm{e} = 2.002319`
+        for a free electron.
+
+        The effective magnetic field, :math:`\mathbf{H}_\mathrm{eff}`, is the sum of all relevant magnetic interactions:
+
+        .. math::
+
+            \mathbf{H}_\mathrm{eff} = \mathbf{H}_\mathrm{ext} + \mathbf{H}_\mathrm{me} + \mathbf{H}_\mathrm{s}
+
+
+        where:
+
+            * :math:`\mathbf{H}_\mathrm{ext}` is the external magnetic field (H_x, H_y, H_z) [T].
+            * :math:`\mathbf{H}_\mathrm{me}` is the magneto-elastic field, calculated by the function `calc_magneto_elastic_field`.
+            * :math:`\mathbf{H}_\mathrm{s}` is the shape anisotropy field, calculated by the function `calc_shape_anisotropy`.
 
         Args:
-            delays (ndarray[Quantity]): delays range of simulation [s].
-            temp_map (ndarray[float]): spatio-temporal temperature map.
-            H_ext (ndarray[float], optional): external magnetic field
-                (H_x, H_y, H_z) [T].
+            delays (ndarray[Quantity]): Delays range of simulation [s].
+            temp_map (ndarray[float]): Spatio-temporal temperature map.
+            strain_map (ndarray[float]): Spatio-temporal strain map.
+            H_ext (ndarray[float], optional): External magnetic field (H_x, H_y, H_z) [T].
 
         Returns:
-            magnetization_map (ndarray[float]): spatio-temporal absolute
-            magnetization profile.
+            ndarray[float]: Spatio-temporal absolute magnetization profile.
 
         """
+
         t1 = time()
         try:
             delays = delays.to('s').magnitude
@@ -1421,7 +1408,7 @@ class LLG(Magnetization):
 
         init_mag = self.check_initial_magnetization(init_mag, distances)
         # convert initial magnetization from polar to cartesian coordinates
-        init_mag = LLB.convert_polar_to_cartesian(init_mag)
+        init_mag = LLG.convert_polar_to_cartesian(init_mag)
         # get layer properties
         curie_temps = self.S.get_layer_property_vector('_curie_temp')
         eff_spins = self.S.get_layer_property_vector('eff_spin')
@@ -1480,7 +1467,7 @@ class LLG(Magnetization):
         # reshape results and set only for magnetic layers
         magnetization_map[:, is_magnetic, :] = np.array(temp).reshape([M, N, 3], order='F')
         # convert to polar coordinates
-        magnetization_map = LLB.convert_cartesian_to_polar(magnetization_map)
+        magnetization_map = LLG.convert_cartesian_to_polar(magnetization_map)
         self.disp_message('Elapsed time for _LLB_: {:f} s'.format(time()-t1))
 
         return magnetization_map
@@ -1629,8 +1616,7 @@ class LLG(Magnetization):
         return A
 
     @staticmethod
-    def odefunc(t, m,
-                delays, N, H_ext, temp_map, strain_map,  mean_mag_map, curie_temps, eff_spins, lambdas,
+    def odefunc(t, m, delays, N, H_ext, temp_map, strain_map,  mean_mag_map, curie_temps, eff_spins, lambdas,
                 mf_exch_couplings, mag_moments, aniso_exponents, anisotropies, mag_saturations,
                 exch_stiffnesses, thicknesses, pbar, state):
         """odefunc
@@ -1695,9 +1681,6 @@ class LLG(Magnetization):
         temps = temp_map[idt, :].flatten()
         strains = strain_map[idt, :].flatten()
 
-        # binary masks for layers being under or over its Curie temperature
-        #under_tc = (temps < curie_temps)
-        #over_tc = ~under_tc
         # get the current mean-field magnetization
         mf_magnetizations = mean_mag_map[idt, :]
 
@@ -1721,66 +1704,19 @@ class LLG(Magnetization):
 
         return np.reshape(dmdt, N*3, order='F')
 
-    @staticmethod
-    def calc_uniaxial_anisotropy_field(mag_map, mf_magnetizations, aniso_exponents, anisotropies,
-                                       mag_saturations):
-        r"""calc_uniaxial_anisotropy_field
-
-        Calculate the uniaxial anisotropy component of the effective field.
-
-        .. math::
-
-            \mathbf{H}_\mathrm{A} = -
-            \frac{2}{M_s}
-            \left(
-                K_x\,m_\mathrm{eq}(T)^{\kappa-2}
-                    \begin{bmatrix}0\\m_y\\m_z\end{bmatrix}
-                + K_y\,m_\mathrm{eq}(T)^{\kappa-2}
-                    \begin{bmatrix}m_x\\0\\m_z\end{bmatrix}
-                + K_z\,m_\mathrm{eq}(T)^{\kappa-2}
-                    \begin{bmatrix}m_x\\m_y\\0\end{bmatrix}
-            \right)
-
-        with :math:`K = (K_x, K_y, K_z)` as the anisotropy and :math:`\kappa` as
-        the uniaxial anisotropy exponent.
-
-        Args:
-            mag_map (ndarray[float]): spatio-temporal magnetization map
-                - possibly for a single delay.
-            mf_magnetizations (ndarray[float]): mean-field magnetization of
-                layers.
-            aniso_exponents (ndarray[float]): exponent of uniaxial
-                anisotropy of layers.
-            anisotropies (ndarray[float]): anisotropy vectors of layers.
-            mag_saturations (ndarray[float]): saturation magnetization of
-                layers.
-
-        Returns:
-            H_A (ndarray[float]): uniaxial anisotropy field.
-
-        """
-        H_A = np.zeros_like(mag_map)
-
-        factor = -2/mag_saturations
-        unit_vector = np.array([0, 1, 1])[np.newaxis, :]
-        for i in range(3):
-            H_A += factor[:, np.newaxis] * anisotropies[:, i, np.newaxis]\
-                * np.power(mf_magnetizations,
-                           aniso_exponents-2)[:, np.newaxis] \
-                * mag_map*np.roll(unit_vector, i, axis=1)
-
-        return H_A
-
     def calc_shape_anisotropy(mag_map, mf_magnetizations):
-        """Calculate the shape anisotropy component of the effective field.
+        r"""Calculate the shape anisotropy component of the effective field.
 
-        The function calculates the shape anisotropy component of the effective field
-        experienced by a material.
+        This function calculates the shape anisotropy component of the effective field
+        for the thin film geometry. Shape anisotropy is a phenomenon in which the
+        magnetization aligns preferentially along a specific direction due to the
+        film's shape.
+
+        The shape anisotropy field, :math:`\mathbf{H}_\mathrm{S}`, is given by:
 
         .. math::
 
-            \mathbf{H}_\mathrm{S} = -M_s
-            \begin{bmatrix}0\\0\\1\end{bmatrix}
+            \mathbf{H}_\mathrm{S} = - M_s \begin{bmatrix}0\\0\\1\end{bmatrix}
 
         where :math:`M_s` represents the saturation magnetization.
 
@@ -1790,6 +1726,10 @@ class LLG(Magnetization):
 
         Returns:
             ndarray[float]: The shape anisotropy field, `H_S`.
+
+        Note:
+            The value of the saturation magnetization (`Ms`) must be provided by the user
+            as a suitable positive value for the specific material.
 
         """
         H_s = np.zeros_like(mag_map)
@@ -1804,28 +1744,37 @@ class LLG(Magnetization):
     @staticmethod
     def calc_magneto_elastic_field(mag_map, mf_magnetizations, strain_map, coupling,
                                    mag_saturations):
-        """Calculate the magnetoelastic contribution to the effective field.
+        r"""Calculate the magnetoelastic contribution to the effective field.
 
-        The function calculates the component of the effective field
-        experienced by a material due to magnetoelastic coupling.
+        This function calculates the magnetoelastic contribution to the effective field
+        experienced by a material due to magnetoelastic coupling. The contribution is determined
+        using the out-of-plane strain.
+
+        The magnetoelastic contribution, :math:`\mathbf{H}_\mathrm{me}`, is given by:
 
         .. math::
 
+            \mathbf{H}_\mathrm{me} = - \frac{2 b_1}{M_s} \eta m_z \begin{bmatrix}0\\0\\1\end{bmatrix}
 
-        where :math:`K = (K_x, K_y, K_z)` represents the anisotropy constants and :math:`\kappa`
-        is the uniaxial anisotropy exponent.
+        where :math:`b_1` represents the magneto-elastic coupling parameter.
 
         Args:
             mag_map (ndarray[float]): Spatio-temporal magnetization map, possibly for a single delay.
             mf_magnetizations (ndarray[float]): Mean-field magnetization of the layers.
             strain_map (ndarray[float]): Spatio-temporal strain map, possibly for a single delay.
-            coupling (ndarray[float]): Magnetoelastic coupling of the layers.
+            coupling (ndarray[float]): Magnetoelastic coupling parameter `b1` of the layers.
             mag_saturations (ndarray[float]): Saturation magnetization of the layers.
 
         Returns:
-            ndarray[float]: The uniaxial anisotropy field, `H_me`.
+            ndarray[float]: The magnetoelastic field, `H_me`.
+
+        Note:
+            The calculation assumes the out-of-plane strain component (`eta`) is used to
+            calculate the magnetoelastic field. Ensure that the input `strain_map` contains
+            the correct out-of-plane strain values.
 
         """
+
         H_me = np.zeros_like(mag_map)
 
         factor = 2 / mag_saturations[2]
@@ -1833,49 +1782,6 @@ class LLG(Magnetization):
         H_me[:, 2] = np.sum(factor * coupling * mag_map * strain_map[:, np.newaxis], axis=1)
 
         return H_me
-
-    @staticmethod
-    def calc_exchange_field(mag_map, exch_stiffnesses, mag_saturations, thicknesses):
-        r"""calc_exchange_field
-
-        Calculate the exchange component of the effective field, which is
-        defined as for each :math:`i^\mathrm{th}` layer in the structure as
-
-        .. math::
-
-            H_{\mathrm{ex}, i}=\frac{2}{M_{s,i} \Delta z_i^2}
-                \left(A_{i}^{i-1}\left(\mathbf{m}_{i-1}-\mathbf{m}_{i}\right)
-                + A_i^{i+1}\left(\mathbf{m}_{i+1}-\mathbf{m}_{i}\right) \right),
-
-        where :math:`\Delta z` is the thickness of the layers or magnetic grains
-        and :math:`M_s` is the saturation magnetization. :math:`A_{i}^{i-1}` and
-        :math:`A_i^{i+1}` describe the exchange stiffness between the nearest
-        neighboring layers provided by
-        :meth:`get_directional_exchange_stiffnesses`.
-
-        Args:
-            mag_map (ndarray[float]): spatio-temporal magnetization map
-                - possibly for a single delay.
-            exch_stiffnesses (ndarray[float]): exchange stiffness of layers
-                towards the upper and lower layer.
-            mag_saturations (ndarray[float]): saturation magnetization of
-                layers.
-
-        Returns:
-            H_ex (ndarray[float]): exchange field.
-
-        """
-        H_ex = np.zeros_like(mag_map)
-
-        m_diff_down = np.concatenate((np.diff(mag_map, axis=0), np.zeros((1, 3))), axis=0)
-        m_diff_up = -np.roll(m_diff_down, 1)
-
-        es = np.divide(2, np.multiply(mag_saturations, thicknesses**2))
-
-        H_ex = es[:, np.newaxis]*exch_stiffnesses[:, 0, np.newaxis]*m_diff_up \
-            + es[:, np.newaxis]*exch_stiffnesses[:, 1, np.newaxis]*m_diff_down
-
-        return -H_ex
 
     @staticmethod
     def calc_Brillouin(mag, temp, eff_spin, mf_exch_coupling, curie_temp):
