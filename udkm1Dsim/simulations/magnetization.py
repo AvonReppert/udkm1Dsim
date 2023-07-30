@@ -244,13 +244,20 @@ class Magnetization(Simulation):
                 elif kwargs['H_ext'].shape != (3,):
                     raise ValueError('H_ext must be a vector with 3 components '
                                      '(H_x, H_y, H_z)!')
-            if ('init_mag' in kwargs):
+            if 'init_mag' in kwargs:
                 if not isinstance(kwargs['init_mag'], np.ndarray):
-                    raise TypeError('init_mag must be a numpy ndarray with '
-                                    'all in radians without units!')
-                elif kwargs['init_mag'].shape != (3,):
-                    raise ValueError('init_mag must be a vector with Nx3 '
-                                     'with N being the number of layers.')
+                    raise TypeError(
+                        'init_mag must be a numpy ndarray with all elements representing the number of layers.')
+
+                distances, _, _ = self.S.get_distances_of_layers(False)
+                N = len(distances)
+                init_mag_shape = kwargs['init_mag'].shape
+
+                if init_mag_shape not in [(3,), (N, 3)]:
+                    raise ValueError(
+                        f'init_mag must be a vector with shape (3,) or (N, 3) with N being the number of layers.')
+
+            magnetization_map = self.calc_magnetization_map(delays, **kwargs)
 
             magnetization_map = self.calc_magnetization_map(delays, **kwargs)
 
