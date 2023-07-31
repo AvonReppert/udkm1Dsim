@@ -1427,6 +1427,12 @@ class LLG(Magnetization):
         is_magnetic = curie_temps > 0
         N = np.count_nonzero(is_magnetic)
 
+        #Calculate differential magnetization map for including demagnetization
+        diff_mean_mag_map = np.zeros_like(mean_mag_map)
+        
+        for idx in range(diff_mean_mag_map.shape[1]):
+            diff_mean_mag_map[:-1,idx] = diff(mean_mag_map[:,idx])/np.abs(delays[0]-delays[1])
+        
         if self.progress_bar:  # with tqdm progressbar
             pbar = tqdm()
             pbar.set_description('Delay = {:.3f} ps'.format(delays[0]*1e12))
@@ -1445,6 +1451,7 @@ class LLG(Magnetization):
                   temp_map[:, is_magnetic, 0],  # provide only the electron temperature
                   strain_map[:, is_magnetic],
                   mean_mag_map[:, is_magnetic],
+                  diff_mean_mag_map[:, is_magnetic],
                   curie_temps[is_magnetic],
                   eff_spins[is_magnetic],
                   lambdas[is_magnetic],
@@ -1684,6 +1691,9 @@ class LLG(Magnetization):
         # get the current mean-field magnetization
         mf_magnetizations = mean_mag_map[idt, :]
 
+        #Get the current demagnetization from mean-field magnetization
+        dmdt_thermal = diff_mean_mag_map[idt, :]
+
         # Nickel specific properties
         g_Ni = 2.21
         g_e = 2.002319
@@ -1700,7 +1710,7 @@ class LLG(Magnetization):
 
         t2 = np.cross(m, H_eff)
 
-        dmdt = gamma_e * (np.cross(m, H_eff) - alpha * np.cross(m, t2))
+        dmdt = gamma_e * (np.cross(m, H_eff) - alpha * np.cross(m, t2)) + np.einsum('ij,i->ij', m, dmdt_thermal)
 
         return np.reshape(dmdt, N*3, order='F')
 
