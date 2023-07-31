@@ -190,6 +190,21 @@ class Magnetization(Simulation):
                 pass
         return init_mag
 
+    def calc_initial_magnetization_map(self, delays_pre, layer_size, **kwargs):
+            t1 = time()
+            
+            strain_pre = np.zeros((len(delays_pre),layer_size))
+            temp_pre = np.zeros((len(delays_pre),layer_siz
+
+            temp_pre += 300 #initial temperature 
+            magnetization_map = self.calc_magnetization_map(delays_pre,temp_pre, strain_pre, **kwargs)
+        
+            
+            self.disp_message('Elapsed time for initial_magnetization_map:'
+                              ' {:f} s'.format(time()-t1))
+            return magnetization_map[-1]
+
+    
     def get_magnetization_map(self, delays, **kwargs):
         r"""get_magnetization_map
 
