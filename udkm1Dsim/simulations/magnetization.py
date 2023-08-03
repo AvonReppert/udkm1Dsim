@@ -244,13 +244,18 @@ class Magnetization(Simulation):
                 elif kwargs['H_ext'].shape != (3,):
                     raise ValueError('H_ext must be a vector with 3 components '
                                      '(H_x, H_y, H_z)!')
-            if ('init_mag' in kwargs):
+            if 'init_mag' in kwargs:
                 if not isinstance(kwargs['init_mag'], np.ndarray):
-                    raise TypeError('init_mag must be a numpy ndarray with '
-                                    'all in radians without units!')
-                elif kwargs['init_mag'].shape != (3,):
-                    raise ValueError('init_mag must be a vector with Nx3 '
-                                     'with N being the number of layers.')
+                    raise TypeError(
+                        'init_mag must be a numpy ndarray with all elements representing the number of layers.')
+
+                distances, _, _ = self.S.get_distances_of_layers(False)
+                N = len(distances)
+                init_mag_shape = kwargs['init_mag'].shape
+
+                if init_mag_shape not in [(3,), (N, 3)]:
+                    raise ValueError(
+                        f'init_mag must be a vector with shape (3,) or (N, 3) with N being the number of layers.')
 
             magnetization_map = self.calc_magnetization_map(delays, **kwargs)
 
@@ -359,6 +364,61 @@ class Magnetization(Simulation):
         polar[..., 2] = np.arctan2(ys, xs)
 
         return polar
+        
+    
+    def calc_equilibrium_magnetization_map(self, H_ext = np.array([0, 0, 0]), threshold = 1e-6, iterations = 100,  **kwargs):
+        
+        t1 = time()
+        
+        distances, _, _ = self.S.get_distances_of_layers(False)
+        is_magnetic = self.S.get_layer_property_vector('_curie_temp')>0
+        
+        delays_equilibrium = np.linspace(0, 500, 1000)*u.ps
+        delays_equilibrium = delays_equilibrium.to('s').magnitude
+        
+        strain_equilibrium = np.zeros((len(delays_equilibrium), len(distances)))
+        
+        M = len(delays_equilibrium)
+        
+        init_temp = 300.
+        temp_equilibrium = np.full((len(delays_equilibrium), len(distances), 2), init_temp)
+        
+        
+        
+        for counter in range(iterations):
+
+            if counter == 0:
+                init_mag = H_ext/np.linalg.norm(H_ext)
+                init_mag = self.convert_cartesian_to_polar(init_mag)
+                magnetization_map_equilibrium = self.calc_magnetization_map(delays_equilibrium,temp_equilibrium, strain_equilibrium, H_ext, init_mag, **kwargs)
+            else:
+                init_mag = magnetization_map_equilibrium[-1, :, :]
+                magnetization_map_equilibrium = self.calc_magnetization_map(delays_equilibrium,temp_equilibrium, strain_equilibrium, H_ext, init_mag, **kwargs)
+        
+            deviations_A = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 0]) - np.mean(magnetization_map_equilibrium[-2, is_magnetic, 0])
+            deviations_phi = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 1]) - np.mean(magnetization_map_equilibrium[-2, is_magnetic, 1])
+            deviations_gamma = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 2]) - np.mean(magnetization_map_equilibrium[-2, is_magnetic, 2])
+            deviations = np.sqrt(deviations_A**2+deviations_phi**2+deviations_gamma**2)
+            print("residual deviation after " + str(counter) + " iterations: " + str(deviations))
+            if np.sum(is_magnetic) > 0:
+                mean_A = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 0])
+                mean_phi = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 1])*u.rad
+                mean_gamma = np.mean(magnetization_map_equilibrium[-1, is_magnetic, 2])*u.rad
+        
+                print("Amplitude = " + str(mean_A) + r" phi = " + str(mean_phi.to('deg')) + r" gamma = " + str(mean_gamma.to('deg')))
+            else:
+                print("The sample contains no magnetic layers")
+        
+            if deviations < threshold:
+                break
+
+        init_mag = magnetization_map_equilibrium[-1, :, :]
+
+        
+        self.disp_message('Elapsed time for initial_magnetization_map:'
+                          ' {:f} s'.format(time()-t1))
+        return init_mag
+
 
 
 class LLB(Magnetization):
@@ -412,7 +472,9 @@ class LLB(Magnetization):
         class_str += super().__str__()
         return class_str
 
-    def calc_magnetization_map(self, delays, temp_map, H_ext=np.array([0, 0, 0]), init_mag=[]):
+
+    def calc_magnetization_map(self, delays, temp_map, strain_map, H_ext=np.array([0, 0, 0]), init_mag=[]):
+
         r"""Calculate the magnetization map using the mean-field quantum Landau-Lifshitz-Bloch equation (LLB).
 
             This function calculates the spatio-temporal magnetization map using the LLB equation for a given delay range
@@ -508,6 +570,7 @@ class LLB(Magnetization):
                   N,
                   H_ext,
                   temp_map[:, is_magnetic, 0],  # provide only the electron temperature
+                  strain_map[:, is_magnetic],
                   mean_mag_map[:, is_magnetic],
                   curie_temps[is_magnetic],
                   eff_spins[is_magnetic],
@@ -772,7 +835,7 @@ class LLB(Magnetization):
         H_s = LLG.calc_shape_anisotropy(m, mf_magnetizations)
 
         # calculate the effective field
-        H_eff = H_ext + H_A + H_ex + H_th
+        H_eff = H_ext + H_A + H_th + H_s + H_me + H_ex 
 
         # calculate components of LLB
         # precessional term:
@@ -1422,7 +1485,7 @@ class LLG(Magnetization):
         thicknesses = self.S.get_layer_property_vector('_thickness')
         # calculate the mean magnetization maps for each unique layer
         # and all relevant parameters
-        mean_mag_map = self.get_mean_field_mag_map(temp_map[:, :, 0])
+        mean_mag_map = self.get_mean_field_mag_map(temp_map[:, :, 1])
         # mask for magnetic layers only
         is_magnetic = curie_temps > 0
         N = np.count_nonzero(is_magnetic)
@@ -1431,7 +1494,8 @@ class LLG(Magnetization):
         diff_mean_mag_map = np.zeros_like(mean_mag_map)
         
         for idx in range(diff_mean_mag_map.shape[1]):
-            diff_mean_mag_map[:-1,idx] = diff(mean_mag_map[:,idx])/np.abs(delays[0]-delays[1])
+            diff_mean_mag_map[:-1,idx] = np.diff(mean_mag_map[:,idx])/np.abs(delays[0]-delays[1])
+
         
         if self.progress_bar:  # with tqdm progressbar
             pbar = tqdm()
@@ -1448,7 +1512,7 @@ class LLG(Magnetization):
             args=(delays,
                   N,
                   H_ext,
-                  temp_map[:, is_magnetic, 0],  # provide only the electron temperature
+                  temp_map[:, is_magnetic, 1],  # provide only the electron temperature
                   strain_map[:, is_magnetic],
                   mean_mag_map[:, is_magnetic],
                   diff_mean_mag_map[:, is_magnetic],
@@ -1623,9 +1687,9 @@ class LLG(Magnetization):
         return A
 
     @staticmethod
-    def odefunc(t, m, delays, N, H_ext, temp_map, strain_map,  mean_mag_map, curie_temps, eff_spins, lambdas,
-                mf_exch_couplings, mag_moments, aniso_exponents, anisotropies, mag_saturations,
-                exch_stiffnesses, thicknesses, pbar, state):
+    def odefunc(t, m, delays, N, H_ext, temp_map, strain_map,  mean_mag_map, diff_mean_mag_map, curie_temps, eff_spins, lambdas, mf_exch_couplings, mag_moments, aniso_exponents, anisotropies, mag_saturations,
+     exch_stiffnesses, thicknesses, pbar, state):
+
         """odefunc
 
         Ordinary differential equation that is solved for 1D LLG.
@@ -1704,9 +1768,11 @@ class LLG(Magnetization):
 
         H_me = LLG.calc_magneto_elastic_field(m, mf_magnetizations, strains, me_coupling, mag_saturations)
         H_s = LLG.calc_shape_anisotropy(m, mf_magnetizations)
+        H_ex = LLG.calc_exchange_field(m, exch_stiffnesses, mag_saturations, thicknesses)
+
 
         # calculate the effective field
-        H_eff = H_ext + H_me + H_s
+        H_eff = H_ext + H_me + H_s + H_ex
 
         t2 = np.cross(m, H_eff)
 
@@ -1750,6 +1816,49 @@ class LLG(Magnetization):
         H_s += Ms * mag_map * unit_vector
 
         return H_s
+
+    @staticmethod
+    def calc_exchange_field(mag_map, exch_stiffnesses, mag_saturations, thicknesses):
+        r"""calc_exchange_field
+
+        Calculate the exchange component of the effective field, which is
+        defined as for each :math:`i^\mathrm{th}` layer in the structure as
+
+        .. math::
+
+            H_{\mathrm{ex}, i}=\frac{2}{M_{s,i} \Delta z_i^2}
+                \left(A_{i}^{i-1}\left(\mathbf{m}_{i-1}-\mathbf{m}_{i}\right)
+                + A_i^{i+1}\left(\mathbf{m}_{i+1}-\mathbf{m}_{i}\right) \right),
+
+        where :math:`\Delta z` is the thickness of the layers or magnetic grains
+        and :math:`M_s` is the saturation magnetization. :math:`A_{i}^{i-1}` and
+        :math:`A_i^{i+1}` describe the exchange stiffness between the nearest
+        neighboring layers provided by
+        :meth:`get_directional_exchange_stiffnesses`.
+
+        Args:
+            mag_map (ndarray[float]): spatio-temporal magnetization map
+                - possibly for a single delay.
+            exch_stiffnesses (ndarray[float]): exchange stiffness of layers
+                towards the upper and lower layer.
+            mag_saturations (ndarray[float]): saturation magnetization of
+                layers.
+
+        Returns:
+            H_ex (ndarray[float]): exchange field.
+
+        """
+        H_ex = np.zeros_like(mag_map)
+
+        m_diff_down = np.concatenate((np.diff(mag_map, axis=0), np.zeros((1, 3))), axis=0)
+        m_diff_up = -np.roll(m_diff_down, 1)
+
+        es = np.divide(2, np.multiply(mag_saturations, thicknesses**2))
+
+        H_ex = es[:, np.newaxis]*exch_stiffnesses[:, 0, np.newaxis]*m_diff_up \
+            + es[:, np.newaxis]*exch_stiffnesses[:, 1, np.newaxis]*m_diff_down
+
+        return -H_ex
 
     @staticmethod
     def calc_magneto_elastic_field(mag_map, mf_magnetizations, strain_map, coupling,
@@ -1876,3 +1985,4 @@ class LLG(Magnetization):
     @distances.setter
     def distances(self, distances):
         self._distances = distances.to_base_units().magnitude
+
